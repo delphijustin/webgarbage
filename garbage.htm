@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="cards/cardsLibrary.js"></script>
+<script>
+var getQueryStringValue = function(parameter) {
+    var currentPageURL = window.location.search.substring(1);
+    var queryString = currentPageURL.split('&');
+    var getParameter;
+    var i;
+    for (i = 0; i < queryString.length; i++) {
+        getParameter = queryString[i].split('=');
+        if (getParameter[0] === parameter) {
+            return getParameter[1] === undefined ? true : decodeURIComponent(getParameter[1]);
+        }
+    }
+};
+var cards;
+computerTurn=false;
+computerDrawn=false;
+playerClicks=0;
+DrawsDisabled=true;
+roundObj={"len":0,"p0":[],"p1":[],"l0":0,"l1":0};
+if(location.search.length>0)roundObj=JSON.parse(getQueryStringValue("r"));
+PlayerLevel=new Array();
+PlayerLevel.push(roundObj.l0);
+PlayerLevel.push(roundObj.l1);
+flipped=[[true,true,true,true,true,true,true,true,true,true],
+[true,true,true,true,true,true,true,true,true,true]];
+function writeGameLog(msg){
+var gamelog=document.getElementById("gameLog");
+gamelog.value=msg+String.fromCharCode(10)+gamelog.value;
+}
+const nn='Player';
+var discard;
+playerCards=[new Array(),new Array()];
+function cardHTML(index,player){
+var html="";
+if(player==1)html='<a href="javascript:cardClick('+Number(index)+')">';
+html+='<img id="P'+Number(player-1)+'C'+Number(index)+'" src="'+deckRoot;
+if(index<10-PlayerLevel[player-1]){html+="back.jpg";}else{
+html+="emptyX.jpg";}
+html+='" alt="'+faceArray[index]+'">';
+if(player==1)html+="</a>";
+if(index==4)html+="<br>";
+return html;
+}//end cardhtml
+function drawCard(player){
+if(DrawsDisabled||cards.length<1||computerDrawn)return;
+discard=cards.pop();
+switch(player){
+case 0:writeGameLog("You have drawn a "+faceArray[getCardObject(discard).face]+" Of "+suitArray[getCardObject(discard).suit]);break;
+case 1:writeGameLog("Computer has drawn a "+faceArray[getCardObject(discard).face]+" Of "+suitArray[getCardObject(discard).suit]);break;
+}
+document.getElementById("discard").src=deckRoot+discard;
+if(cards.length<1)document.getElementById("drawPile").src=deckRoot+"emptyX.jpg";
+}
+function deal(){
+for(i=0;i<roundObj.len;i++){
+var li=document.createElement("LI");
+li.innerText="You: "+roundObj.p0[i]+" Computer: "+roundObj.p1[i];
+document.getElementById("scores").appendChild(li);
+}
+cards=ShuffleCards(Full_Deck,1);
+discard=cards.pop();
+writeGameLog("You drawn a "+faceArray[getCardObject(discard).face]+" Of "+suitArray[getCardObject(discard).suit]);
+for(var I=0;I<10-PlayerLevel[0];I++){
+var card=cards.pop();
+playerCards[0].push(card);
+flipped[0][I]=false;
+document.getElementById("hand0").innerHTML+=cardHTML(I,1);
+}
+for(var I=0;I<10-PlayerLevel[1];I++){
+var card=cards.pop();
+playerCards[1].push(card);
+flipped[1][I]=false;
+document.getElementById("hand1").innerHTML+=cardHTML(I,2);
+}
+document.getElementById("discard").src=deckRoot+discard;
+}//end deal
+function isMoveable(player,slot,card){
+if(slot>9)return false;
+if(getCardObject(card).face==12&&!flipped[player][slot])return true;
+return(slot==getCardObject(card).face&&!flipped[player][getCardObject(card).face]);
+}//end ismoveable
+function moveAvalible(player,card){
+for(var I=0;I<10;I++)if(isMoveable(1,I,card))return true;
+return false;
+}
+function slotsAvalible(player){
+var x=0;
+for(var I=0;I<10;I++)if(!flipped[player][I])x++;
+return x;
+}//end slotsavalible
+function kingMoves(){
+var slots=new Array();
+for(var I=0;I<10;I++)if(isMoveable(1,I,discard))slots.push(I);
+return slots;
+}//end kingMoves
+function computerPlayer(){
+if(computerTurn)return;
+playerClicks=0;
+computerTurn=true;
+if(slotsAvalible(1)==0){
+PlayerLevel[1]++;
+roundObj.len++;
+roundObj.l1++;
+alert("Computer has won this round Your Score:"+PlayerLevel[0]+" Computer Score:"+PlayerLevel[1]);
+if(PlayerLevel[1]>9){PlayerLevel[0]=0;PlayerLevel[1]=0;
+if(confirm("Computer won, play again?"))location.search="?r="+escape(JSON.stringify())+"&nn="+nn;
+return;
+}//end if
+roundObj.p0.push(PlayerLevel[0]);roundObj.p1.push(PlayerLevel[1]);
+location.search="?r="+escape(JSON.stringify(roundObj))+"&nn="+nn;}
+var selslot;
+if(!moveAvalible(1,discard)){
+drawCard(1);
+DrawsDisabled=true;
+}
+if(!moveAvalible(1,discard)){
+computerTurn=false;
+computerDrawn=false;
+DrawsDisabled=false;
+return;
+}
+computerDrawn=true;
+selslot=10;
+if(getCardObject(discard).face==12){
+var moves=kingMoves();
+selslot=moves[Math.floor(moves.length*Math.random())];
+var hiddenCard=playerCards[1][selslot];
+document.getElementById("P1C"+selslot).src=deckRoot+discard;
+document.getElementById("discard").src=deckRoot+hiddenCard;
+flipped[1][selslot]=true;
+writeGameLog("Computer has flipped over a "+faceArray[getCardObject(hiddenCard).face]+" Of "+suitArray[getCardObject(hiddenCard).suit]);
+discard=hiddenCard;
+computerTurn=false;
+setTimeout(computerPlayer,1500);
+return;
+}else{
+selslot=getCardObject(discard).face;
+var hiddenCard=playerCards[1][selslot];
+document.getElementById("P1C"+selslot).src=deckRoot+discard;
+document.getElementById("discard").src=deckRoot+hiddenCard;
+flipped[1][selslot]=true;
+writeGameLog("Computer has flipped over a "+faceArray[getCardObject(hiddenCard).face]+" Of "+suitArray[getCardObject(hiddenCard).suit]);
+discard=hiddenCard;
+computerTurn=false;
+setTimeout(computerPlayer,1500);
+return;
+}
+if(selslot<10&&!flipped[1][selslot]){
+var hiddenCard=playerCards[1][selslot];
+document.getElementById("P1C"+selslot).src=deckRoot+discard;
+document.getElementById("discard").src=deckRoot+hiddenCard;
+flipped[1][selslot]=true;
+writeGameLog("Computer has flipped over a "+faceArray[getCardObject(hiddenCard).face]+" Of "+suitArray[getCardObject(hiddenCard).suit]);
+discard=hiddenCard;
+computerTurn=false;
+setTimeout(computerPlayer,1500);
+return;
+}//end if
+doneBtn.style.display="inline";
+DrawsDisabled=false;
+computerTurn=false;
+writeGameLog("Its your turn");
+}
+function cardClick(cardIndex){
+if(!isMoveable(0,cardIndex,discard)||computerTurn)return;
+var hiddenCard=playerCards[0][cardIndex];
+document.getElementById("P0C"+cardIndex).src=deckRoot+discard;
+document.getElementById("discard").src=deckRoot+hiddenCard;
+discard=hiddenCard;
+flipped[0][cardIndex]=true;
+DrawsDisabled=true;
+writeGameLog("You flipped over a "+faceArray[getCardObject(hiddenCard).face]+" Of "+suitArray[getCardObject(hiddenCard).suit]);
+playerClicks++;
+if(playerClicks>3)document.getElementById("good"+Math.floor(3*Math.random())).play();
+if(slotsAvalible(0)==0){
+PlayerLevel[0]++;
+roundObj.len++;
+roundObj.l0++;
+roundObj.p0.push(PlayerLevel[0]);roundObj.p1.push(PlayerLevel[1]);
+alert("You won this round Your Score:"+PlayerLevel[0]+" Computer Score:"+PlayerLevel[1]);
+if(PlayerLevel[0]>9){PlayerLevel[0]=0;PlayerLevel[1]=0;
+if(confirm("You won, play again?"))location.search="?r="+escape(JSON.stringify(roundObj))+"&nn="+nn;
+return;
+}else{
+location.search="?r="+escape(JSON.stringify(roundObj))+"&nn="+nn;
+}//end if
+}}
+</script>
+<style>
+body {background-color: green;}
+#gameLog {
+    margin: 0px;
+    height: 139px;
+    width: 221px;
+}
+</style>
+</head>
+<body onload="deal()">
+<audio id="playerwins" autoload><source src="CLAP.mp3" type="audio/mpeg3"></audio>
+<audio id="good0" autoload><source src="GOOD0.mp3" type="audio/mpeg3"></audio>
+<audio id="good1" autoload><source src="GOOD1.mp3" type="audio/mpeg3"></audio>
+<audio id="good2" autoload><source src="GOOD2.mp3" type="audio/mpeg3"></audio>
+<p id="hand1"></p>
+<a href="javascript:drawCard()"><img src="cards/back.jpg" id="drawPile" alt="Draw Pile"></a>
+<img src="cards/emptyO.jpg" alt="Discard" id="discard">
+<input type="button" onclick="computerPlayer()" value="Done" id="doneBtn">
+<textarea id="gameLog" readonly>Its your turn</textarea>
+<p id="hand0"></p>
+<ol id="scores">
+</ol>
+</body>
+</html>
