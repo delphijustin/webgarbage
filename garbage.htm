@@ -2,6 +2,7 @@
 <html>
 <head>
 <script src="cards/cardsLibrary.js"></script>
+<script src="jquery-3.6.0.min.js"></script>
 <script>
 var getQueryStringValue = function(parameter) {
     var currentPageURL = window.location.search.substring(1);
@@ -56,6 +57,24 @@ document.getElementById("discard").src=deckRoot+discard;
 if(cards.length<1)document.getElementById("drawPile").src=deckRoot+"emptyX.jpg";
 }
 function deal(){
+$("body").keyup(function(event){
+switch(event.which){
+case 48:cardClick(9);return;
+case 49:cardClick(0);return;
+case 50:cardClick(1);return;
+case 51:cardClick(2);return;
+case 52:cardClick(3);return;
+case 53:cardClick(4);return;
+case 54:cardClick(5);return;
+case 55:cardClick(6);return;
+case 56:cardClick(7);return;
+case 57:cardClick(8);return;
+case 100:
+case 68:drawCard();return;
+case 80:
+case 112:computerPlayer();return;
+}
+});
 for(i=0;i<roundObj.len;i++){
 var li=document.createElement("LI");
 li.innerText="You: "+roundObj.p0[i]+" Computer: "+roundObj.p1[i];
